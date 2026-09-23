@@ -4,26 +4,20 @@ import { expressMiddleware } from '@as-integrations/express5';
 import cors from "cors";
 import express from "express";
 import cookieParser from "cookie-parser";
+import schema from "./schema"
+import createContext from "./context";
 
 const CLIENT_PORT = Number(process.env.CLIENT_LOCALHOST_PORT) || '';
 const SERVER_PORT = Number(process.env.SERVER_LOCALHOST_PORT) || '';
 
-const
-  app = express();
+const app = express();
 
-const server = new ApolloServer({
-  typeDefs: `
-    type Query {
-      hello: String
-    }
-  `,
-  resolvers: {
-    Query: { hello: () => "Hello World" }
-  }
+const apolloServer = new ApolloServer({
+  schema
 })
 
 async function startServer() {
-  await server.start();
+  await apolloServer.start();
   app.use(
     "/graphql",
     cors({
@@ -32,7 +26,11 @@ async function startServer() {
     }),
     cookieParser(),
     express.json(), // graphql will always respond in JSON
-    expressMiddleware(server)
+    expressMiddleware(
+      apolloServer,
+      {
+        context: ({ req, res }) => createContext({ req, res })
+      })
   )
 
   app.listen(SERVER_PORT, () => {
